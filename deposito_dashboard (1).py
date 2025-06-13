@@ -16,25 +16,25 @@ def load_data(url: str) -> pd.DataFrame:
 # Load data dari Google Sheets
 df = load_data(CSV_URL)
 
-# Deteksi kolom bulan dari header
+# Deteksi kolom utama
+base_columns = [col for col in ["Bank", "Jatuh Tempo", "Bilyet"] if col in df.columns]
 month_keywords = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "aug", "sep", "okt", "oct", "nov", "des", "dec"]
 month_columns = [col for col in df.columns if any(k in col.lower() for k in month_keywords)]
 
-# Sidebar - pilih bulan dari kolom
+# Sidebar - pilih Bank
 st.sidebar.header("Filter Data")
-selected_month = st.sidebar.selectbox("Pilih Bulan", ["Semua"] + month_columns)
+bank_options = ["Semua"] + sorted(df['Bank'].dropna().unique().tolist()) if 'Bank' in df.columns else []
+selected_bank = st.sidebar.selectbox("Pilih Bank", bank_options)
 
-# Kolom dasar
-base_columns = [col for col in ["Bank", "Jatuh Tempo", "Bilyet"] if col in df.columns]
+# Filter berdasarkan Bank jika dipilih
+if selected_bank != "Semua" and 'Bank' in df.columns:
+    df = df[df['Bank'] == selected_bank]
 
-# Tentukan kolom yang ditampilkan
-if selected_month != "Semua" and selected_month in df.columns:
-    show_columns = base_columns + [selected_month]
-else:
-    show_columns = base_columns + month_columns
+# Tentukan kolom yang akan ditampilkan
+show_columns = base_columns + month_columns
 
 # Tampilkan data
 st.subheader("Tabel Deposito per Bulan")
-st.dataframe(df[show_columns])
+st.dataframe(df[show_columns].reset_index(drop=True))
 
-st.caption("*Data ditampilkan berdasarkan kolom bulan horizontal yang dipilih.*")
+st.caption("*Data ditampilkan dalam format horizontal dengan filter berdasarkan Bank.*")
