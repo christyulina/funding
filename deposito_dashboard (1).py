@@ -17,7 +17,7 @@ def load_data(url: str) -> pd.DataFrame:
 df = load_data(CSV_URL)
 
 # Deteksi kolom utama
-base_columns = [col for col in ["Bank", "Jatuh Tempo", "Bilyet"] if col in df.columns]
+base_columns = [col for col in ["Bank", "Jatuh Tempo", "Bilyet", "Amount", "Rate", "Interest"] if col in df.columns]
 month_keywords = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "aug", "sep", "okt", "oct", "nov", "des", "dec"]
 month_columns = [col for col in df.columns if any(k in col.lower() for k in month_keywords)]
 
@@ -37,4 +37,4 @@ show_columns = base_columns + month_columns
 st.subheader("Tabel Deposito per Bulan")
 st.dataframe(df[show_columns].reset_index(drop=True))
 
-st.caption("*Data ditampilkan dalam format horizontal dengan filter berdasarkan Bank.*")
+st.caption("*Data ditampilkan dalam format horizontal termasuk Amount, Rate, dan Interest serta difilter berdasarkan Bank.*")
