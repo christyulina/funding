@@ -20,15 +20,16 @@ df = load_data(CSV_URL)
 st.subheader("Tabel Deposito per Bulan")
 st.dataframe(df)
 
-# Filter berdasarkan kolom jika tersedia
+# Filter berdasarkan kolom bulan jika tersedia
 st.sidebar.header("Filter Data")
-if 'Bank' in df.columns:
-    bank_list = ["Semua"] + sorted(df['Bank'].dropna().unique().tolist())
-    selected_bank = st.sidebar.selectbox("Pilih Bank", bank_list)
-    if selected_bank != "Semua":
-        df = df[df['Bank'] == selected_bank]
+month_cols = [col for col in df.columns if any(bulan in col.lower() for bulan in ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "sep", "okt", "nov", "des"])]
+
+if month_cols:
+    selected_month = st.sidebar.selectbox("Pilih Bulan", ["Semua"] + month_cols)
+    if selected_month != "Semua":
+        df = df[[col for col in df.columns if col not in month_cols or col == selected_month]]
 
 st.subheader("Data Setelah Filter")
 st.dataframe(df.reset_index(drop=True))
 
-st.caption("*Data ditarik langsung dari Google Sheets yang telah diperbarui.*")
+st.caption("*Data ditarik langsung dari Google Sheets dan difilter berdasarkan kolom bulan.*")
