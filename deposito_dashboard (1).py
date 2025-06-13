@@ -30,20 +30,31 @@ base_columns = [col for col in known_base if col in df.columns]
 month_keywords = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "aug", "sep", "okt", "oct", "nov", "des", "dec"]
 month_columns = [col for col in df.columns if any(k in col.lower() for k in month_keywords)]
 
-# Filter berdasarkan Bank (jika kolom tersedia)
+# Sidebar filter kombinasi
+st.sidebar.header("Filter Data")
+
+# Filter bank
 if "Bank" in df.columns:
-    st.sidebar.header("Filter Data")
     bank_options = ["Semua"] + sorted(df['Bank'].dropna().unique().tolist())
     selected_bank = st.sidebar.selectbox("Pilih Bank", bank_options)
+else:
+    selected_bank = "Semua"
 
-    if selected_bank != "Semua":
-        df = df[df['Bank'] == selected_bank]
+# Filter bulan
+selected_month = st.sidebar.selectbox("Pilih Bulan", ["Semua"] + month_columns)
 
-# Gabungkan kolom untuk ditampilkan
-show_columns = base_columns + month_columns
+# Filter data
+if selected_bank != "Semua":
+    df = df[df['Bank'] == selected_bank]
 
-# Tampilkan tabel hasil
+# Tentukan kolom yang ditampilkan
+if selected_month != "Semua" and selected_month in month_columns:
+    display_columns = base_columns + [selected_month]
+else:
+    display_columns = base_columns + month_columns
+
+# Tampilkan data
 st.subheader("Tabel Deposito")
-st.dataframe(df[show_columns].reset_index(drop=True))
+st.dataframe(df[display_columns].reset_index(drop=True))
 
-st.caption("*Data ditampilkan sesuai struktur terbaru dari Google Sheets, termasuk filter berdasarkan Bank jika tersedia.*")
+st.caption("*Data ditampilkan dengan filter kombinasi Bank dan Bulan, dalam format horizontal.*")
