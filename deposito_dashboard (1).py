@@ -7,7 +7,7 @@ st.set_page_config(page_title="Dashboard Deposito Bulanan", layout="wide")
 st.title("Dashboard Monitoring Deposito Bulanan")
 
 # URL CSV Google Sheets publik
-CSV_URL = "https://docs.google.com/spreadsheets/d/1Ouct7adiZK51oI2DVtU56kMDqE-exQ3ljFtaWnGuXkc/export?format=csv"
+CSV_URL = "https://docs.google.com/spreadsheets/d/1eoIkgdM2IH513xAx9A_IcumdH23Tw29fvc-KzSrkuGk/export?format=csv"
 
 @st.cache_data
 def load_data(url: str) -> pd.DataFrame:
