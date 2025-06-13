@@ -9,32 +9,16 @@ st.title("Dashboard Monitoring Deposito Bulanan")
 # URL CSV Google Sheets publik
 CSV_URL = "https://docs.google.com/spreadsheets/d/1eoIkgdM2IH513xAx9A_IcumdH23Tw29fvc-KzSrkuGk/export?format=csv"
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_data(url: str) -> pd.DataFrame:
     return pd.read_csv(url)
 
-# Load data dari Google Sheets
+# Load data terbaru dari Google Sheets
 df = load_data(CSV_URL)
 
-# Deteksi kolom utama
-base_columns = [col for col in ["Bank", "Jatuh Tempo", "Bilyet", "Amount", "Rate", "Interest"] if col in df.columns]
-month_keywords = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "aug", "sep", "okt", "oct", "nov", "des", "dec"]
-month_columns = [col for col in df.columns if any(k in col.lower() for k in month_keywords)]
+# Tampilkan preview seluruh isi data tanpa filter
+st.subheader("Tabel Lengkap Deposito (Google Sheets Terbaru)")
+st.dataframe(df)
 
-# Sidebar - pilih Bank
-st.sidebar.header("Filter Data")
-bank_options = ["Semua"] + sorted(df['Bank'].dropna().unique().tolist()) if 'Bank' in df.columns else []
-selected_bank = st.sidebar.selectbox("Pilih Bank", bank_options)
-
-# Filter berdasarkan Bank jika dipilih
-if selected_bank != "Semua" and 'Bank' in df.columns:
-    df = df[df['Bank'] == selected_bank]
-
-# Tentukan kolom yang akan ditampilkan
-show_columns = base_columns + month_columns
-
-# Tampilkan data
-st.subheader("Tabel Deposito per Bulan")
-st.dataframe(df[show_columns].reset_index(drop=True))
-
-st.caption("*Data ditampilkan dalam format horizontal termasuk Amount, Rate, dan Interest serta difilter berdasarkan Bank.*")
+# Catatan untuk pengguna
+st.caption("*Data ditarik langsung dari Google Sheets terbaru. Jika struktur berubah (nama kolom baru, baris header berbeda, dsb), silakan pastikan kesesuaian manual atau informasikan perubahan tersebut agar kode disesuaikan kembali.*")
