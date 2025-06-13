@@ -1,0 +1,14 @@
+# 📊 Dashboard Monitoring Deposito Bulanan
+
+Dashboard interaktif berbasis [Streamlit](https://streamlit.io/) untuk memantau saldo deposito bulanan berdasarkan data dari **Google Sheets** publik (tanpa login). Dashboard ini cocok digunakan untuk monitoring keuangan perusahaan, laporan manajemen, dan analisis tren saldo deposito.
+
+## 🚀 Fitur Utama
+
+- **Auto-sync dari Google Sheets** (CSV publik)
+- **Filter Bulan dan Bank**
+- **Tabel ringkasan saldo bulanan**
+- **Grafik distribusi saldo per bank**
+- **Grafik tren saldo dari waktu ke waktu**
+
+## 📁 Struktur Proyek
+
