@@ -13,6 +13,7 @@ CSV_URL = "https://docs.google.com/spreadsheets/d/1eoIkgdM2IH513xAx9A_IcumdH23Tw
 def load_data(url: str) -> pd.DataFrame:
     try:
         df = pd.read_csv(url)
+        df.columns = df.columns.str.strip()  # normalisasi nama kolom
         return df
     except Exception as e:
         st.error(f"Gagal memuat data dari Google Sheets: {e}")
@@ -22,39 +23,46 @@ def load_data(url: str) -> pd.DataFrame:
 df = load_data(CSV_URL)
 
 if df.empty:
+    st.warning("Data kosong atau tidak berhasil dimuat.")
     st.stop()
 
-# Identifikasi kolom utama dan bulan
-known_base = ["Bank", "Jatuh Tempo", "Bilyet", "Amount", "Rate", "Interest"]
-base_columns = [col for col in known_base if col in df.columns]
+# Tampilkan struktur data mentah untuk debug awal
+st.sidebar.markdown("### Debugging Info")
+st.sidebar.write("Kolom ditemukan:", df.columns.tolist())
+
+# Identifikasi kolom dinamis
 month_keywords = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "aug", "sep", "okt", "oct", "nov", "des", "dec"]
 month_columns = [col for col in df.columns if any(k in col.lower() for k in month_keywords)]
+base_candidates = ["bank", "jatuh tempo", "bilyet", "amount", "rate", "interest"]
+base_columns = [col for col in df.columns if any(k in col.lower() for k in base_candidates)]
 
-# Sidebar filter kombinasi
+# Deteksi nama kolom Bank secara fleksibel
+bank_column = next((col for col in df.columns if 'bank' in col.lower()), None)
+
+# Sidebar Filter
 st.sidebar.header("Filter Data")
-
-# Filter bank
-if "Bank" in df.columns:
-    bank_options = ["Semua"] + sorted(df['Bank'].dropna().unique().tolist())
+selected_bank = "Semua"
+if bank_column:
+    bank_options = ["Semua"] + sorted(df[bank_column].dropna().unique().tolist())
     selected_bank = st.sidebar.selectbox("Pilih Bank", bank_options)
-else:
-    selected_bank = "Semua"
 
-# Filter bulan
 selected_month = st.sidebar.selectbox("Pilih Bulan", ["Semua"] + month_columns)
 
-# Filter data
-if selected_bank != "Semua":
-    df = df[df['Bank'] == selected_bank]
+# Terapkan filter
+if selected_bank != "Semua" and bank_column:
+    df = df[df[bank_column] == selected_bank]
 
-# Tentukan kolom yang ditampilkan
-if selected_month != "Semua" and selected_month in month_columns:
+# Tentukan kolom yang akan ditampilkan
+if selected_month != "Semua" and selected_month in df.columns:
     display_columns = base_columns + [selected_month]
 else:
     display_columns = base_columns + month_columns
 
 # Tampilkan data
 st.subheader("Tabel Deposito")
-st.dataframe(df[display_columns].reset_index(drop=True))
+if not df.empty and display_columns:
+    st.dataframe(df[display_columns].reset_index(drop=True))
+else:
+    st.info("Tidak ada data yang sesuai dengan filter.")
 
-st.caption("*Data ditampilkan dengan filter kombinasi Bank dan Bulan, dalam format horizontal.*")
+st.caption("*Data ditampilkan berdasarkan filter bank dan bulan, menyesuaikan struktur Google Sheets terbaru.*")
