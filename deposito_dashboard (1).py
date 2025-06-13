@@ -6,10 +6,9 @@ import re
 # Konfigurasi halaman Streamlit
 st.set_page_config(page_title="Dashboard Deposito Bulanan", layout="wide")
 
-# Judul Aplikasi
 st.title("Dashboard Monitoring Deposito Bulanan")
 
-# URL Google Sheets publik (format CSV) 
+# URL CSV Google Sheets publik
 CSV_URL = "https://docs.google.com/spreadsheets/d/1Ouct7adiZK51oI2DVtU56kMDqE-exQ3ljFtaWnGuXkc/export?format=csv"
 
 @st.cache_data
@@ -19,9 +18,9 @@ def load_data(url: str) -> pd.DataFrame:
 df = load_data(CSV_URL)
 
 # Validasi kolom
-expected_cols = {"Bulan", "Bank", "Saldo"}
+expected_cols = {"Bulan", "Bank"}
 if not expected_cols.issubset(df.columns):
-    st.error("Kolom data tidak sesuai. Pastikan terdapat kolom 'Bulan', 'Bank', dan 'Saldo'.")
+    st.error("Kolom data tidak sesuai. Pastikan terdapat kolom 'Bulan' dan 'Bank'.")
     st.stop()
 
 ALL = "Semua"
@@ -51,55 +50,23 @@ def parse_month(month_str: str):
 unique_months = df["Bulan"].unique()
 unique_banks = df["Bank"].unique()
 months_sorted = sorted(unique_months, key=lambda x: parse_month(x) or x)
-bank_options = sorted(unique_banks)
 month_options = [ALL] + months_sorted
-bank_options = [ALL] + bank_options
+bank_options = [ALL] + sorted(unique_banks)
 
-# Sidebar
+# Sidebar filter
 st.sidebar.header("Filter")
 selected_month = st.sidebar.selectbox("Filter Bulan", month_options)
 selected_bank = st.sidebar.selectbox("Filter Bank", bank_options)
 
-# Filter data
+# Terapkan filter
 df_filtered = df.copy()
 if selected_month != ALL:
     df_filtered = df_filtered[df_filtered["Bulan"] == selected_month]
 if selected_bank != ALL:
     df_filtered = df_filtered[df_filtered["Bank"] == selected_bank]
 
-summary_df = df_filtered.groupby("Bulan")["Saldo"].sum().reset_index()
-summary_df["Month_dt"] = summary_df["Bulan"].apply(parse_month)
-summary_df = summary_df.dropna(subset=["Month_dt"]).sort_values("Month_dt")
-summary_df.rename(columns={"Saldo": "Total Saldo"}, inplace=True)
+# Tampilkan data yang difilter
+st.subheader("Data Deposito yang Difilter")
+st.dataframe(df_filtered)
 
-# Format Total Saldo sebagai mata uang
-summary_df["Total Saldo"] = summary_df["Total Saldo"].apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
-
-bar_df = df_filtered.groupby("Bank")["Saldo"].sum().reset_index().rename(columns={"Saldo": "Total Saldo"})
-bar_df.sort_values("Total Saldo", ascending=False, inplace=True)
-
-line_chart = alt.Chart(summary_df).mark_line(point=True).encode(
-    x=alt.X("Month_dt:T", title="Bulan"),
-    y=alt.Y("Total Saldo:Q", title="Total Saldo"),
-    tooltip=[alt.Tooltip("Bulan:N"), alt.Tooltip("Total Saldo:Q")]
-).properties(height=400)
-
-bar_chart = alt.Chart(bar_df).mark_bar().encode(
-    x=alt.X("Bank:N", sort=None, title="Bank"),
-    y=alt.Y("Total Saldo:Q", title="Total Saldo"),
-    tooltip=[alt.Tooltip("Bank:N"), alt.Tooltip("Total Saldo:Q")]
-).properties(height=400)
-
-# Output
-st.subheader("Ringkasan Deposito per Bulan")
-st.dataframe(summary_df[["Bulan", "Total Saldo"]])
-
-st.subheader("Distribusi Saldo per Bank")
-if selected_bank != ALL:
-    st.caption(f"*Hanya menampilkan Bank **{selected_bank}** pada bulan terfilter.*")
-st.altair_chart(bar_chart, use_container_width=True)
-
-st.subheader("Tren Saldo Bulanan")
-if selected_month != ALL:
-    st.caption(f"*Hanya menampilkan data bulan **{selected_month}** untuk bank terfilter.*")
-st.altair_chart(line_chart, use_container_width=True)
+st.caption("*Menampilkan data dari Google Sheets berdasarkan filter bulan dan bank.*")
