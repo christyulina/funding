@@ -22,47 +22,55 @@ if df_all.empty:
     st.warning("Data kosong atau tidak berhasil dimuat.")
     st.stop()
 
-# Pisahkan berdasarkan tabel: deteksi berdasarkan baris 'KATEGORI' atau lainnya
+# Bagi data menjadi dua berdasarkan nilai di kolom 'KATEGORI'
 if 'KATEGORI' in df_all.columns:
-    df_all = df_all.ffill()  # pastikan kategori terisi
+    df_all = df_all.ffill()
     df_depo = df_all[df_all['KATEGORI'].str.lower() == 'deposito']
     df_bunga = df_all[df_all['KATEGORI'].str.lower().str.contains('bunga')]
 else:
-    st.error("Kolom 'KATEGORI' tidak ditemukan untuk memisahkan tabel. Harap tambahkan kolom penanda kategori pada Google Sheets.")
+    st.error("Kolom 'KATEGORI' tidak ditemukan. Tambahkan kolom ini untuk memisahkan antara deposito dan bunga.")
     st.stop()
 
-# Fungsi bantu untuk filter dan tampilkan tabel
-def tampilkan_tabel(df, nama):
-    st.subheader(f"Tabel {nama}")
+# Fungsi bantu
+month_keywords = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "aug", "sep", "okt", "oct", "nov", "des", "dec"]
 
-    # Deteksi kolom
-    month_keywords = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "aug", "sep", "okt", "oct", "nov", "des", "dec"]
-    month_columns = [col for col in df.columns if any(k in col.lower() for k in month_keywords)]
-    base_candidates = ["bank", "jatuh tempo", "bilyet", "amount", "rate", "interest"]
-    base_columns = [col for col in df.columns if any(k in col.lower() for k in base_candidates)]
+def detect_month_columns(columns):
+    return [col for col in columns if any(k in col.lower() for k in month_keywords)]
+
+def display_table(df, title, value_column_label):
+    st.subheader(f"Tabel {title}")
+
+    # Identifikasi kolom bulan dan bank
+    month_columns = detect_month_columns(df.columns)
     bank_column = next((col for col in df.columns if 'bank' in col.lower()), None)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        selected_bank = st.selectbox(f"Pilih Bank ({nama})", ["Semua"] + sorted(df[bank_column].dropna().unique().tolist()) if bank_column else ["Semua"])
-    with col2:
-        selected_month = st.selectbox(f"Pilih Bulan ({nama})", ["Semua"] + month_columns)
+    if not bank_column:
+        st.warning("Kolom 'Bank' tidak ditemukan pada tabel " + title)
+        return
 
-    # Filter
-    if selected_bank != "Semua" and bank_column:
+    selected_bank = st.selectbox(f"Pilih Bank ({title})", ["Semua"] + sorted(df[bank_column].dropna().unique().tolist()))
+    selected_month = st.selectbox(f"Pilih Bulan ({title})", ["Semua"] + month_columns)
+
+    # Filter bank
+    if selected_bank != "Semua":
         df = df[df[bank_column] == selected_bank]
+
+    # Persiapkan data tampil
+    tampil_col = [bank_column]
     if selected_month != "Semua" and selected_month in df.columns:
-        tampilkan = base_columns + [selected_month] if selected_month else base_columns
+        tampil_col.append(selected_month)
     else:
-        tampilkan = base_columns + month_columns
+        tampil_col += month_columns
 
-    if not df.empty:
-        st.dataframe(df[tampilkan].reset_index(drop=True))
-    else:
-        st.info(f"Tidak ada data yang sesuai di tabel {nama}.")
+    df_display = df[tampil_col].rename(columns={selected_month: value_column_label} if selected_month != "Semua" else {})
 
-# Tampilkan kedua tabel
-tampilkan_tabel(df_depo, "Deposito")
-tampilkan_tabel(df_bunga, "Bunga Deposito")
+    st.dataframe(df_display.reset_index(drop=True))
 
-st.caption("*Data ditampilkan berdasarkan dua kategori: Deposito dan Bunga, dengan filter bank dan bulan secara terpisah.*")
+# Tampilkan tabel Deposito dan Bunga
+with st.expander("📌 Tabel Deposito", expanded=True):
+    display_table(df_depo, "Deposito", "Nominal")
+
+with st.expander("💰 Tabel Bunga Deposito", expanded=True):
+    display_table(df_bunga, "Bunga Deposito", "Amount")
+
+st.caption("*Filter berdasarkan Bank dan Bulan (horizontal) berlaku untuk masing-masing tabel.*")
