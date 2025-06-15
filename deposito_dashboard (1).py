@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Dashboard Deposito Bulanan", layout="wide")
+st.set_page_config(page_title="Dashboard Monitoring Deposito dan Bunga", layout="wide")
 st.title("Dashboard Monitoring Deposito dan Bunga")
 
 CSV_URL = "https://docs.google.com/spreadsheets/d/1eoIkgdM2IH513xAx9A_IcumdH23Tw29fvc-KzSrkuGk/export?format=csv"
@@ -11,6 +11,9 @@ def load_data(url: str) -> pd.DataFrame:
     try:
         df = pd.read_csv(url)
         df.columns = df.columns.str.strip()
+        df['KATEGORI'] = df['KATEGORI'].astype(str).str.strip().str.upper()
+        df['BANK'] = df['BANK'].astype(str).str.strip()
+        df['BULAN'] = df['BULAN'].astype(str).str.strip()
         return df
     except Exception as e:
         st.error(f"Gagal memuat data dari Google Sheets: {e}")
@@ -18,56 +21,30 @@ def load_data(url: str) -> pd.DataFrame:
 
 df_all = load_data(CSV_URL)
 
-if df_all.empty:
-    st.warning("Data kosong atau tidak berhasil dimuat.")
+if df_all.empty or not set(['KATEGORI', 'BANK', 'BULAN', 'AMOUNT']).issubset(df_all.columns):
+    st.warning("Data tidak memiliki struktur kolom yang lengkap.")
     st.stop()
 
-# Normalisasi isi kolom kategori
-if 'KATEGORI' not in df_all.columns:
-    st.error("Kolom 'KATEGORI' tidak ditemukan dalam data.")
-    st.stop()
+# Siapkan pilihan filter
+kategori_list = ['DEPOSITO', 'BUNGA']
+for kategori in kategori_list:
+    df_kat = df_all[df_all['KATEGORI'] == kategori]
+    st.subheader(f"Tabel {kategori.title()}")
 
-df_all['KATEGORI'] = df_all['KATEGORI'].astype(str).str.strip().str.lower()
-df_depo = df_all[df_all['KATEGORI'] == 'deposito']
-df_bunga = df_all[df_all['KATEGORI'] == 'bunga']
+    # Ambil filter
+    col1, col2 = st.columns(2)
+    with col1:
+        bank_filter = st.selectbox(f"Pilih Bank ({kategori})", ["Semua"] + sorted(df_kat['BANK'].dropna().unique().tolist()), key=f"bank_{kategori}")
+    with col2:
+        bulan_filter = st.selectbox(f"Pilih Bulan ({kategori})", ["Semua"] + sorted(df_kat['BULAN'].dropna().unique().tolist()), key=f"bulan_{kategori}")
 
-# Fungsi bantu
-month_keywords = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "aug", "sep", "okt", "oct", "nov", "des", "dec"]
+    if bank_filter != "Semua":
+        df_kat = df_kat[df_kat['BANK'] == bank_filter]
+    if bulan_filter != "Semua":
+        df_kat = df_kat[df_kat['BULAN'] == bulan_filter]
 
-def detect_month_columns(columns):
-    return [col for col in columns if any(k in col.lower() for k in month_keywords)]
+    # Tampilkan tabel
+    df_display = df_kat[['BULAN', 'BANK', 'AMOUNT']].reset_index(drop=True)
+    st.dataframe(df_display)
 
-def display_table(df, title, value_column_label):
-    st.subheader(f"Tabel {title}")
-
-    month_columns = detect_month_columns(df.columns)
-    bank_column = next((col for col in df.columns if 'bank' in col.lower()), None)
-
-    if not bank_column or not month_columns:
-        st.warning(f"Kolom 'Bank' atau bulan tidak ditemukan dalam tabel {title}.")
-        return
-
-    selected_bank = st.selectbox(f"Pilih Bank ({title})", ["Semua"] + sorted(df[bank_column].dropna().unique().tolist()))
-    selected_month = st.selectbox(f"Pilih Bulan ({title})", ["Semua"] + month_columns)
-
-    if selected_bank != "Semua":
-        df = df[df[bank_column] == selected_bank]
-
-    tampil_col = [bank_column]
-    if selected_month != "Semua" and selected_month in df.columns:
-        tampil_col.append(selected_month)
-    else:
-        tampil_col += month_columns
-
-    df_display = df[tampil_col].rename(columns={selected_month: value_column_label} if selected_month != "Semua" else {})
-
-    st.dataframe(df_display.reset_index(drop=True))
-
-# Tampilkan kedua tabel sesuai kategori
-with st.expander("📌 Tabel Deposito", expanded=True):
-    display_table(df_depo, "Deposito", "Nominal")
-
-with st.expander("💰 Tabel Bunga Deposito", expanded=True):
-    display_table(df_bunga, "Bunga Deposito", "Amount")
-
-st.caption("*Data ditampilkan berdasarkan kolom 'KATEGORI' (deposito & bunga), dengan filter bank dan bulan.*")
+st.caption("*Dashboard ini menampilkan data berdasarkan kolom vertikal 'BULAN', 'BANK', dan 'AMOUNT' sesuai kategori.*")
