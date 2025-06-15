@@ -31,20 +31,23 @@ for kategori in kategori_list:
     df_kat = df_all[df_all['KATEGORI'] == kategori]
     st.subheader(f"Tabel {kategori.title()}")
 
-    # Ambil filter
+    bank_list = sorted(df_kat['BANK'].dropna().unique().tolist())
+    bulan_list = sorted(df_kat['BULAN'].dropna().unique().tolist())
+
     col1, col2 = st.columns(2)
     with col1:
-        bank_filter = st.selectbox(f"Pilih Bank ({kategori})", ["Semua"] + sorted(df_kat['BANK'].dropna().unique().tolist()), key=f"bank_{kategori}")
+        selected_bank = st.selectbox(f"Pilih Bank ({kategori})", ["Semua"] + bank_list, key=f"bank_{kategori}")
     with col2:
-        bulan_filter = st.selectbox(f"Pilih Bulan ({kategori})", ["Semua"] + sorted(df_kat['BULAN'].dropna().unique().tolist()), key=f"bulan_{kategori}")
+        selected_bulan = st.selectbox(f"Pilih Bulan ({kategori})", ["Semua"] + bulan_list, key=f"bulan_{kategori}")
 
-    if bank_filter != "Semua":
-        df_kat = df_kat[df_kat['BANK'] == bank_filter]
-    if bulan_filter != "Semua":
-        df_kat = df_kat[df_kat['BULAN'] == bulan_filter]
+    if selected_bank != "Semua":
+        df_kat = df_kat[df_kat['BANK'] == selected_bank]
+    if selected_bulan != "Semua":
+        df_kat = df_kat[df_kat['BULAN'] == selected_bulan]
 
-    # Tampilkan tabel
-    df_display = df_kat[['BULAN', 'BANK', 'AMOUNT']].reset_index(drop=True)
-    st.dataframe(df_display)
+    if not df_kat.empty:
+        st.dataframe(df_kat[['BULAN', 'BANK', 'AMOUNT']].reset_index(drop=True))
+    else:
+        st.info("Tidak ada data yang sesuai.")
 
-st.caption("*Dashboard ini menampilkan data berdasarkan kolom vertikal 'BULAN', 'BANK', dan 'AMOUNT' sesuai kategori.*")
+st.caption("*Data ditampilkan berdasarkan kolom vertikal 'BULAN', '
