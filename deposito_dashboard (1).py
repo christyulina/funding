@@ -3,12 +3,12 @@ import pandas as pd
 
 # Konfigurasi halaman
 st.set_page_config(page_title="Dashboard Monitoring Deposito dan Bunga", layout="wide")
-st.title("Dashboard Monitoring Deposito dan Bunga")
+st.title("📊 Dashboard Monitoring Deposito dan Bunga")
 
-# URL Google Sheets CSV
+# URL Google Sheet sebagai CSV publik
 CSV_URL = "https://docs.google.com/spreadsheets/d/1eoIkgdM2IH513xAx9A_IcumdH23Tw29fvc-KzSrkuGk/export?format=csv"
 
-# Fungsi load data
+# Fungsi memuat dan membersihkan data
 @st.cache_data(show_spinner=False)
 def load_data(url: str) -> pd.DataFrame:
     try:
@@ -26,27 +26,30 @@ def load_data(url: str) -> pd.DataFrame:
         df["AMOUNT"] = pd.to_numeric(df["AMOUNT"], errors="coerce")
         return df.dropna(subset=["AMOUNT"])
     except Exception as e:
-        st.error(f"Gagal memuat data: {e}")
+        st.error(f"Gagal memuat data dari Google Sheets: {e}")
         return pd.DataFrame()
 
-# Load dan validasi
+# Ambil data
 df_all = load_data(CSV_URL)
 
-if df_all.empty or not set(["KATEGORI", "BANK", "BULAN", "AMOUNT"]).issubset(df_all.columns):
-    st.warning("Data tidak lengkap atau struktur tidak sesuai.")
+# Validasi struktur minimal
+required_cols = {"KATEGORI", "BANK", "BULAN", "AMOUNT"}
+if df_all.empty or not required_cols.issubset(set(df_all.columns)):
+    st.warning("Struktur data tidak lengkap.")
     st.stop()
 
-# Loop per kategori
+# Tampilkan tabel berdasarkan KATEGORI
 for kategori in ["DEPOSITO", "BUNGA"]:
+    st.subheader(f"📌 Tabel {kategori.title()}")
     df_kat = df_all[df_all["KATEGORI"] == kategori]
-    st.subheader(f"Tabel {kategori.title()}")
 
     if df_kat.empty:
         st.info(f"Tidak ada data untuk kategori {kategori}.")
         continue
 
-    bank_options = sorted(df_kat["BANK"].dropna().unique().tolist())
-    bulan_options = sorted(df_kat["BULAN"].dropna().unique().tolist())
+    # Ambil opsi filter
+    bank_options = sorted(df_kat["BANK"].unique().tolist())
+    bulan_options = sorted(df_kat["BULAN"].unique().tolist())
 
     col1, col2 = st.columns(2)
     with col1:
@@ -54,16 +57,19 @@ for kategori in ["DEPOSITO", "BUNGA"]:
     with col2:
         selected_bulan = st.selectbox(f"Pilih Bulan ({kategori})", ["Semua"] + bulan_options, key=f"bulan_{kategori}")
 
+    # Terapkan filter hanya jika bukan 'Semua'
     if selected_bank != "Semua":
         df_kat = df_kat[df_kat["BANK"] == selected_bank]
     if selected_bulan != "Semua":
         df_kat = df_kat[df_kat["BULAN"] == selected_bulan]
 
-    if not df_kat.empty:
-        df_display = df_kat[["BULAN", "BANK", "AMOUNT"]].copy()
-        df_display["AMOUNT"] = df_display["AMOUNT"].apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
-        st.dataframe(df_display.reset_index(drop=True))
-    else:
+    # Tampilkan hasil
+    if df_kat.empty:
         st.info("Tidak ada data yang sesuai dengan filter.")
+    else:
+        df_show = df_kat[["BULAN", "BANK", "AMOUNT"]].copy()
+        df_show["AMOUNT"] = df_show["AMOUNT"].apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
+        st.dataframe(df_show.reset_index(drop=True))
 
-st.caption("*Data ditarik dari satu tabel dan ditampilkan berdasarkan nilai 'KATEGORI'.*")
+# Footer
+st.caption("*Data ditarik dari satu tabel dan ditampilkan berdasarkan nilai kolom 'KATEGORI'. Format nominal dalam Rupiah.*")
