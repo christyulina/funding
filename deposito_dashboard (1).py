@@ -33,7 +33,7 @@ for kategori in kategori_list:
     st.subheader(f"Tabel {kategori.title()}")
 
     if df_kat.empty:
-        st.warning(f"Tidak ada data dengan kategori '{kategori}' ditemukan.")
+        st.info(f"Tidak ada data untuk kategori '{kategori}'.")
         continue
 
     bank_list = sorted(df_kat['BANK'].dropna().unique().tolist())
@@ -55,6 +55,6 @@ for kategori in kategori_list:
         df_display['AMOUNT'] = df_display['AMOUNT'].apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
         st.dataframe(df_display.reset_index(drop=True))
     else:
-        st.info("Tidak ada data yang sesuai.")
+        st.info("Tidak ada data yang sesuai dengan filter.")
 
-st.caption("*Data ditampilkan berdasarkan kolom vertikal 'BULAN', 'BANK', dan 'AMOUNT' sesuai kategori. Nominal diformat sebagai Rupiah.*")
+st.caption("*Data ditarik dari satu tabel dan ditampilkan berdasarkan nilai kolom 'KATEGORI'.*")
