@@ -14,16 +14,14 @@ def load_data(url: str) -> pd.DataFrame:
         df['KATEGORI'] = df['KATEGORI'].astype(str).str.strip().str.upper()
         df['BANK'] = df['BANK'].astype(str).str.strip().str.upper()
         df['BULAN'] = df['BULAN'].astype(str).str.strip().str.upper()
-        return df
+        df['AMOUNT'] = df['AMOUNT'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df['AMOUNT'] = pd.to_numeric(df['AMOUNT'], errors='coerce')
+        return df.dropna(subset=['AMOUNT'])
     except Exception as e:
         st.error(f"Gagal memuat data dari Google Sheets: {e}")
         return pd.DataFrame()
 
 df_all = load_data(CSV_URL)
-
-# Tampilkan kategori untuk debug
-st.sidebar.markdown("### Nilai KATEGORI Terdeteksi")
-st.sidebar.write(df_all['KATEGORI'].unique().tolist())
 
 if df_all.empty or not set(['KATEGORI', 'BANK', 'BULAN', 'AMOUNT']).issubset(df_all.columns):
     st.warning("Data tidak memiliki struktur kolom yang lengkap.")
@@ -53,8 +51,10 @@ for kategori in kategori_list:
         df_kat = df_kat[df_kat['BULAN'] == selected_bulan]
 
     if not df_kat.empty:
-        st.dataframe(df_kat[['BULAN', 'BANK', 'AMOUNT']].reset_index(drop=True))
+        df_display = df_kat[['BULAN', 'BANK', 'AMOUNT']].copy()
+        df_display['AMOUNT'] = df_display['AMOUNT'].apply(lambda x: f"Rp {x:,.0f}".replace(",", "."))
+        st.dataframe(df_display.reset_index(drop=True))
     else:
         st.info("Tidak ada data yang sesuai.")
 
-st.caption("*Data ditampilkan berdasarkan kolom vertikal 'BULAN', 'BANK', dan 'AMOUNT' sesuai kategori. Nilai KATEGORI telah dinormalisasi.*")
+st.caption("*Data ditampilkan berdasarkan kolom vertikal 'BULAN', 'BANK', dan 'AMOUNT' sesuai kategori. Nominal diformat sebagai Rupiah.*")
