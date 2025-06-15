@@ -32,10 +32,6 @@ for kategori in kategori_list:
     df_kat = df_all[df_all['KATEGORI'] == kategori]
     st.subheader(f"Tabel {kategori.title()}")
 
-    if df_kat.empty:
-        st.info(f"Tidak ada data untuk kategori '{kategori}'.")
-        continue
-
     bank_list = sorted(df_kat['BANK'].dropna().unique().tolist())
     bulan_list = sorted(df_kat['BULAN'].dropna().unique().tolist())
 
@@ -57,4 +53,4 @@ for kategori in kategori_list:
     else:
         st.info("Tidak ada data yang sesuai dengan filter.")
 
-st.caption("*Data ditarik dari satu tabel dan ditampilkan berdasarkan nilai kolom 'KATEGORI'.*")
+st.caption("*Data ditampilkan berdasarkan kolom 'KATEGORI', dengan filter berdasarkan 'BANK' dan 'BULAN'.*")
