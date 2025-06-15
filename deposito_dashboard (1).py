@@ -12,8 +12,8 @@ def load_data(url: str) -> pd.DataFrame:
         df = pd.read_csv(url)
         df.columns = df.columns.str.strip()
         df['KATEGORI'] = df['KATEGORI'].astype(str).str.strip().str.upper()
-        df['BANK'] = df['BANK'].astype(str).str.strip()
-        df['BULAN'] = df['BULAN'].astype(str).str.strip()
+        df['BANK'] = df['BANK'].astype(str).str.strip().str.upper()
+        df['BULAN'] = df['BULAN'].astype(str).str.strip().str.upper()
         return df
     except Exception as e:
         st.error(f"Gagal memuat data dari Google Sheets: {e}")
@@ -21,15 +21,22 @@ def load_data(url: str) -> pd.DataFrame:
 
 df_all = load_data(CSV_URL)
 
+# Tampilkan kategori untuk debug
+st.sidebar.markdown("### Nilai KATEGORI Terdeteksi")
+st.sidebar.write(df_all['KATEGORI'].unique().tolist())
+
 if df_all.empty or not set(['KATEGORI', 'BANK', 'BULAN', 'AMOUNT']).issubset(df_all.columns):
     st.warning("Data tidak memiliki struktur kolom yang lengkap.")
     st.stop()
 
-# Siapkan pilihan filter
 kategori_list = ['DEPOSITO', 'BUNGA']
 for kategori in kategori_list:
     df_kat = df_all[df_all['KATEGORI'] == kategori]
     st.subheader(f"Tabel {kategori.title()}")
+
+    if df_kat.empty:
+        st.warning(f"Tidak ada data dengan kategori '{kategori}' ditemukan.")
+        continue
 
     bank_list = sorted(df_kat['BANK'].dropna().unique().tolist())
     bulan_list = sorted(df_kat['BULAN'].dropna().unique().tolist())
@@ -50,4 +57,4 @@ for kategori in kategori_list:
     else:
         st.info("Tidak ada data yang sesuai.")
 
-st.caption("*Data ditampilkan berdasarkan kolom vertikal 'BULAN', '
+st.caption("*Data ditampilkan berdasarkan kolom vertikal 'BULAN', 'BANK', dan 'AMOUNT' sesuai kategori. Nilai KATEGORI telah dinormalisasi.*")
